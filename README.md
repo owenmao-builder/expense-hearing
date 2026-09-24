@@ -2,7 +2,7 @@
 
 四个角色会审一句话经营解释，用证据把结论改掉。
 
-[MIT License](LICENSE) · [GitHub 仓库](https://github.com/owenmao-builder/expense-hearing)
+[在线体验（无需登录）](https://expense-hearing-owen-0924.owenmao24.chatgpt.site) · [MIT License](LICENSE) · [GitHub 仓库](https://github.com/owenmao-builder/expense-hearing)
 
 两个可点击、可重放的合成费用会审案件。四个 Bot 是固定协作角色，发言由剧本驱动；未连接 ERP、Grok 或模型服务。
 
@@ -57,4 +57,4 @@ WebMCP 为渐进增强，在浏览器支持 `document.modelContext` 时注册只
 
 无需 API Key、账号或数据库即可本地运行。公开版本的 `.openai/hosting.json` 仅保留通用绑定配置，不包含作者的站点标识。`npm run build` 生成 Cloudflare Workers 兼容产物，可用 `npm run start` 在本地预览生产构建。
 
-本仓库链接可公开分享。此前的 Sites 在线演示仍为私有，并不是面向公众的演示入口；开源仓库不会改变它的访问权限。
+[在线演示](https://expense-hearing-owen-0924.owenmao24.chatgpt.site) 已开放公开访问，打开即可进入费用会审室，无需 ChatGPT 账号或登录。可直接分享演示链接，也可分享本仓库源码链接。
