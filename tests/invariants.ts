@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+import { cases } from '../lib/hearing/cases';
+import { allocate,defer,createBook,money,share,sum,format,signed } from '../lib/hearing/ledger';
+import { deriveState,deriveConclusion,requestSupplement } from '../lib/hearing/machine';
+import { useHearing } from '../lib/hearing/store';
+const [sales,market]=cases;
+const entries=[{bucket:'销售部',delta:-money(7)},{bucket:'客服部',delta:money(7)}];
+const approval=sales.evidence.find(e=>e.kind==='allocation')!;
+assert.throws(()=>allocate(sales.buckets,entries,undefined,sales.period),/批准/);
+assert.throws(()=>allocate(sales.buckets,entries,{...approval,status:'unsigned'},sales.period),/批准/);
+assert.throws(()=>allocate(sales.buckets,entries,{...approval,period:'2026-07'},sales.period),/本期/);
+assert.throws(()=>allocate(sales.buckets,[entries[0],{bucket:'客服部',delta:money(6)}],approval,sales.period),/零和/);
+assert.throws(()=>allocate(sales.buckets,[{bucket:'销售部',delta:-money(8)},{bucket:'客服部',delta:money(8)}],approval,sales.period),/不一致/);
+assert.equal(share(money(3),money(20)),15);assert.equal(share(money(17),money(20)),85);
+assert.equal(format(money(.000001)),'0.000001');assert.equal(signed(money(-8)),'−8');
+assert.throws(()=>money(0.0000001));assert.throws(()=>sum([Number.MAX_SAFE_INTEGER,1]));
+assert.throws(()=>{(sales.book as {bookActual:number}).bookActual=0});
+assert.throws(()=>{(sales.book.rows[0] as {actual:number}).actual=0});
+for(const c of cases){const original=JSON.stringify(c.book);for(let h=-1;h<c.beats.length;h++){const s=deriveState(c,h);assert.equal(JSON.stringify(s.book),original);assert.equal(sum(Object.values(s.mgmt)),sum(Object.values(c.buckets)));if(!s.adjusted)assert.equal(s.mgmtActual,c.book.bookActual);}const first=deriveState(c,c.beats.length-1,true);const second=deriveState(c,c.beats.length-1,true);assert.equal(JSON.stringify(deriveConclusion(c,first)),JSON.stringify(deriveConclusion(c,second)));assert.ok(deriveConclusion(c,first).unresolved);assert.equal(c.beats.reduce((sum,b)=>sum+b.duration,0),40000);}
+const salesState=deriveState(sales,sales.beats.length-1,true);assert.equal(salesState.mgmtActual,money(113));assert.equal(salesState.mgmtVariance,money(13));assert.equal(salesState.mgmt['客服部'],money(7));assert.equal(salesState.book.bookVariance,money(20));assert.equal(deriveState(sales,4).evidence.length,2);assert.equal(deriveState(sales,4).mgmtActual,money(120));
+const marketingState=deriveState(market,market.beats.length-1,true);assert.equal(marketingState.mgmtActual,money(90));assert.equal(marketingState.mgmtVariance,money(10));assert.equal(marketingState.book.bookVariance,money(-8));assert.equal(marketingState.mgmt['2026-09'],0);
+assert.throws(()=>defer(marketingState.mgmt,[{bucket:'2026-08',delta:-money(18)},{bucket:'2026-09',delta:money(18)}],market.evidence.find(e=>e.kind==='deferral')),/批准/);
+assert.equal(requestSupplement(0),1);assert.equal(requestSupplement(1),2);assert.throws(()=>requestSupplement(2),/上限/);
+assert.throws(()=>deriveConclusion(sales,deriveState(sales,4)),/尚未/);
+const store=useHearing;store.getState().select(0);store.getState().play();store.getState().tick(100);store.getState().pause();const paused=store.getState().elapsed;store.getState().tick(100);assert.equal(store.getState().elapsed,paused);store.getState().step();assert.equal(store.getState().head,1);assert.equal(store.getState().running,false);
+store.getState().select(1);assert.equal(store.getState().head,-1);assert.equal(store.getState().elapsed,0);assert.equal(store.getState().done,false);
+for(let i=0;i<=market.beats.length;i++)store.getState().step();assert.equal(store.getState().done,true);assert.equal(store.getState().showConclusion,true);store.getState().replay();assert.equal(store.getState().head,0);assert.equal(store.getState().done,false);assert.equal(store.getState().showConclusion,false);
+console.log('PASS: monetary invariants, approval rejection, period restoration, immutable ledger, supplement limit, deterministic replay, pause/step/reset.');
